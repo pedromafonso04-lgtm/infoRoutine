@@ -1,0 +1,77 @@
+import pandas as pd
+from pathlib import Path
+
+# The 61 sources provided by the user
+data = [
+    # Scope, Source, Description, Link, Geography
+    ["Political", "Brookings Institution", "Think tank, policy papers for progressive/center-left perspectives.", "https://www.brookings.edu", "World"],
+    ["Political", "Project Syndicate", "Op-eds by global leaders offering high-level perspectives.", "https://www.project-syndicate.org", "World"],
+    ["Political", "Hoover Institution", "Essays and podcasts for a center-right/free-market view.", "https://www.hoover.org", "World"],
+    ["Political", "Cato Institute", "Libertarian policy analysis.", "https://www.cato.org", "World"],
+    ["Political", "Eurasia Group", "Risk consulting insights for unbiased geopolitical realism.", "https://www.eurasiagroup.net", "World"],
+    ["Political", "Foreign Affairs", "Deep-dive geopolitical essays.", "https://www.foreignaffairs.com", "World"],
+    ["Political", "Politico Europe", "The pulse of EU legislation, decentering the US.", "https://www.politico.eu", "World"],
+    ["Political", "Al Jazeera English", "Crucial for Middle Eastern and Global South perspectives.", "https://www.aljazeera.com", "World"],
+    ["Political", "Le Monde in English", "A distinct French/continental geopolitical lens.", "https://www.lemonde.fr/en/", "World"],
+    ["Political", "Reuters", "The 'Control Group' baseline wire service for unopinionated breaking facts.", "https://www.reuters.com", "World"],
+    ["Political", "Fundação Francisco Manuel dos Santos (FFMS)", "Essays and deep social/political studies.", "https://www.ffms.pt", "Portugal"],
+    ["Political", "Instituto +Liberdade", "Data-driven reports focusing on economic/political freedom.", "https://maisliberdade.pt", "Portugal"],
+    ["Political", "Instituto Português de Relações Internacionais (IPRI)", "Academic papers and briefs.", "https://www.ipri.pt", "Portugal"],
+    ["Political", "Expresso", "High trust newspaper for weekly deep-dives.", "https://expresso.pt", "Portugal"],
+    ["Political", "Público", "Strong daily editorial independence and investigative pieces.", "https://www.publico.pt", "Portugal"],
+    ["Economics", "NBER", "Working papers for official macroeconomic research.", "https://www.nber.org", "World"],
+    ["Economics", "World Economic Forum (WEF)", "Global risk reports and institutional trends.", "https://www.weforum.org", "World"],
+    ["Economics", "FT Alphaville", "Financial Times' highly cynical, analytical blog for market-driven contrarian views.", "https://www.ft.com/alphaville", "World"],
+    ["Economics", "MacroVoices", "Podcast with hedge fund managers for private market skepticism.", "https://www.macrovoices.com", "World"],
+    ["Economics", "Y Combinator Blog / Hacker News", "Micro-economic startup and venture trends.", "https://news.ycombinator.com", "World"],
+    ["Economics", "Financial Times", "UK-based, globally minded market news.", "https://www.ft.com", "World"],
+    ["Economics", "Eurostat", "Direct API for raw European economic data, bypassing media interpretation.", "https://ec.europa.eu/eurostat", "World"],
+    ["Economics", "Nikkei Asia", "The essential publication for global supply chains and Asian markets, decentering the US.", "https://asia.nikkei.com", "World"],
+    ["Economics", "Banco de Portugal", "Economic Bulletins for official central bank views.", "https://www.bportugal.pt", "Portugal"],
+    ["Economics", "Conselho das Finanças Públicas (CFP)", "Independent fiscal watchdog reports.", "https://www.cfp.pt", "Portugal"],
+    ["Economics", "Eco / Jornal Económico", "Guest op-eds from local economists are crucial.", "https://eco.sapo.pt", "Portugal"],
+    ["Economics", "Portugal Ventures", "Press releases and portfolio updates to gauge local investment trends.", "https://www.portugalventures.pt", "Portugal"],
+    ["Economics", "Jornal de Negócios", "The standard for local corporate and market news.", "https://www.jornaldenegocios.pt", "Portugal"],
+    ["Social trends", "Pew Research Center", "The gold standard for global polling and demographics.", "https://www.pewresearch.org", "World"],
+    ["Social trends", "Our World in Data", "Global, long-term statistical trends and data visualization.", "https://ourworldindata.org", "World"],
+    ["Social trends", "Subreddit Data", "Using Reddit API to track emergent cultural shifts and sentiment.", "https://www.reddit.com/r/dataisbeautiful/", "World"],
+    ["Social trends", "Garbage Day", "Substack tracking internet culture shifts.", "https://www.garbageday.email", "World"],
+    ["Social trends", "The Free Press", "Substack focusing on heterodox thinking and stories ignored by mainstream media.", "https://www.thefp.com", "World"],
+    ["Social trends", "Eurobarometer", "The official polling instrument of the EU, tracking public sentiment.", "https://europa.eu/eurobarometer/", "World"],
+    ["Social trends", "ReliefWeb (UN OCHA)", "The gold standard for global disaster tracking and humanitarian crises.", "https://reliefweb.int", "World"],
+    ["Social trends", "Pordata", "The absolute best source for statistical data on Portuguese society.", "https://www.pordata.pt", "Portugal"],
+    ["Social trends", "Marktest", "Market research and consumer behavior studies.", "https://www.marktest.com", "Portugal"],
+    ["Social trends", "Observatório da Sociedade Portuguesa", "Católica Lisbon reports on consumer confidence and well-being.", "https://clsbe.lisboa.ucp.pt", "Portugal"],
+    ["Tech", "a16z (Andreessen Horowitz)", "Newsletters from venture capitalists representing the builders/optimists.", "https://a16z.com", "World"],
+    ["Tech", "Stratechery by Ben Thompson", "The premier newsletter on tech business strategy.", "https://stratechery.com", "World"],
+    ["Tech", "Electronic Frontier Foundation (EFF)", "For the skeptic/ethics view on digital rights and privacy.", "https://www.eff.org", "World"],
+    ["Tech", "404 Media", "Independent investigative journalism on tech consequences.", "https://www.404media.co", "World"],
+    ["Tech", "MIT Technology Review", "Lab-to-market analysis and climate/energy section.", "https://www.technologyreview.com", "World"],
+    ["Tech", "ArXiv (cs.AI)", "Scraping abstracts for the latest artificial intelligence papers.", "https://arxiv.org", "World"],
+    ["Tech", "Quanta Magazine", "Illuminating deep-dive physics, math, and biology without the academic jargon.", "https://www.quantamagazine.org", "World"],
+    ["Tech", "PLOS Biology / Nature", "RSS feeds for peer-reviewed life sciences.", "https://www.nature.com", "World"],
+    ["Tech", "Rest of World", "Reporting on how technology is impacting areas outside the Western bubble.", "https://restofworld.org", "World"],
+    ["Tech", "IEEE Spectrum", "The absolute best for physical engineering, hardware, and advanced materials.", "https://spectrum.ieee.org", "World"],
+    ["Tech", "Nature Materials", "Tracking RSS feeds for nanotechnology and materials abstracts.", "https://www.nature.com/nmat/", "World"],
+    ["Tech", "SynBioBeta", "The premier network for synthetic biological engineering.", "https://synbiobeta.com", "World"],
+    ["Tech", "STAT News", "Deep-dive reporting on biotech and pharma.", "https://www.statnews.com", "World"],
+    ["Tech", "Canary Media", "Top-tier reporting on the global energy transition and hardware.", "https://www.canarymedia.com", "World"],
+    ["Tech", "New Scientist", "Accessible but rigorous coverage of all hard sciences.", "https://www.newscientist.com", "World"],
+    ["Tech", "Ars Technica (Science section)", "Broad, general deep tech coverage.", "https://arstechnica.com", "World"],
+    ["Tech", "NOAA / WMO", "Raw data on extreme weather anomalies and earth sciences.", "https://www.noaa.gov", "World"],
+    ["Tech", "Data Science Portugal (DSPPT)", "Community updates, meetups, and local tech ecosystem trends.", "https://www.datascienceportugal.com", "Portugal"],
+    ["Tech", "Associação Portuguesa para o Desenvolvimento das Comunicações (APDC)", "Debates on national digital transition.", "https://www.apdc.pt", "Portugal"],
+    ["Tech", "INESC TEC", "Research papers and innovation news from the Porto-based institute.", "https://www.inesctec.pt", "Portugal"],
+    ["Tech", "Ciência Viva", "Updates from the national agency for scientific culture.", "https://www.cienciaviva.pt", "Portugal"],
+    ["Tech", "INL (International Iberian Nanotechnology Laboratory)", "World-class updates on nanotech.", "https://inl.int", "Portugal"],
+    ["Tech", "CeNTI (Centre for Nanotechnology and Smart Materials)", "Excellent for applied materials news.", "https://www.centi.pt", "Portugal"],
+    ["Tech", "i3S (Instituto de Investigação e Inovação em Saúde)", "Leading research in health and bio-sciences.", "https://www.i3s.up.pt", "Portugal"],
+    ["Tech", "INEGI", "Great for physical, mechanical, and industrial engineering updates.", "https://www.inegi.pt", "Portugal"],
+    ["Tech", "FCT (Fundação para a Ciência e a Tecnologia)", "Track news feed for national tech/science funding.", "https://www.fct.pt", "Portugal"]
+]
+
+df = pd.DataFrame(data, columns=["Scope", "Source", "Description", "Link", "Geography"])
+out_path = Path(__file__).parent.parent / ".docs" / "Sources.xlsx"
+out_path.parent.mkdir(exist_ok=True)
+df.to_excel(out_path, index=False)
+print(f"✅ Successfully wrote {len(df)} sources to {out_path}")
